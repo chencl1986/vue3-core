@@ -639,7 +639,9 @@ export function setupComponent(
 
   const { props, children } = instance.vnode
   const isStateful = isStatefulComponent(instance)
+  // 初始化 props
   initProps(instance, props, isStateful, isSSR)
+  // 初始化插槽
   initSlots(instance, children)
 
   const setupResult = isStateful
@@ -649,6 +651,7 @@ export function setupComponent(
   return setupResult
 }
 
+// 组合式 API的 setup 函数
 function setupStatefulComponent(
   instance: ComponentInternalInstance,
   isSSR: boolean
@@ -688,6 +691,7 @@ function setupStatefulComponent(
     exposePropsOnRenderContext(instance)
   }
   // 2. call setup()
+  // setup()被调用，返回值被赋值给setupResult
   const { setup } = Component
   if (setup) {
     const setupContext = (instance.setupContext =
@@ -704,6 +708,7 @@ function setupStatefulComponent(
     resetTracking()
     unsetCurrentInstance()
 
+    // 如果setupResult是一个promise，那么就将其赋值给instance.asyncDep
     if (isPromise(setupResult)) {
       setupResult.then(unsetCurrentInstance, unsetCurrentInstance)
       if (isSSR) {
@@ -735,13 +740,18 @@ function setupStatefulComponent(
         )
       }
     } else {
+      // setup()返回的不是Promise
+      // handleSetupResult最终也会执行finishComponentSetup
       handleSetupResult(instance, setupResult, isSSR)
     }
   } else {
+    // 如果没有setup函数，直接执行finishComponentSetup
     finishComponentSetup(instance, isSSR)
   }
 }
 
+// 处理setup函数的返回值
+// setup函数执行完毕后，执行finishComponentSetup
 export function handleSetupResult(
   instance: ComponentInternalInstance,
   setupResult: unknown,
@@ -806,7 +816,9 @@ export function registerRuntimeCompiler(_compile: any) {
 // dev only
 export const isRuntimeOnly = () => !compile
 
+// 完成组件的初始化
 export function finishComponentSetup(
+  // 组件实例
   instance: ComponentInternalInstance,
   isSSR: boolean,
   skipOptions?: boolean
@@ -826,12 +838,16 @@ export function finishComponentSetup(
   if (!instance.render) {
     // only do on-the-fly compile if not in SSR - SSR on-the-fly compilation
     // is done by server-renderer
+    // 如果不是SSR，而且有template，但没有渲染函数，那么就执行编译
+    // 如果不存在渲染函数，就将template编译成渲染函数
     if (!isSSR && compile && !Component.render) {
+      // 获取template，它来自于Component.template，或者是vnode.props['inline-template']
       const template =
         (__COMPAT__ &&
           instance.vnode.props &&
           instance.vnode.props['inline-template']) ||
         Component.template ||
+        // 合并mixins或extends的template
         resolveMergedOptions(instance).template
       if (template) {
         if (__DEV__) {
@@ -858,6 +874,7 @@ export function finishComponentSetup(
             extend(finalCompilerOptions.compatConfig, Component.compatConfig)
           }
         }
+        // 编译template，得到渲染函数
         Component.render = compile(template, finalCompilerOptions)
         if (__DEV__) {
           endMeasure(instance, `compile`)
@@ -865,6 +882,7 @@ export function finishComponentSetup(
       }
     }
 
+    // 如果Component.render存在，那么就赋值给instance.render
     instance.render = (Component.render || NOOP) as InternalRenderFunction
 
     // for runtime-compiled render functions using `with` blocks, the render
@@ -879,6 +897,7 @@ export function finishComponentSetup(
   if (__FEATURE_OPTIONS_API__ && !(__COMPAT__ && skipOptions)) {
     setCurrentInstance(instance)
     pauseTracking()
+    // 执行Component的options
     applyOptions(instance)
     resetTracking()
     unsetCurrentInstance()

@@ -38,9 +38,11 @@ let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
 
+// [为浏览器环境注册编译器，编译器的作用是将template编译成render函数]
 function ensureRenderer() {
   return (
     renderer ||
+    // 通过工厂函数baseCreateRenderer返回一个渲染器
     (renderer = createRenderer<Node, Element | ShadowRoot>(rendererOptions))
   )
 }
@@ -62,7 +64,10 @@ export const hydrate = ((...args) => {
   ensureHydrationRenderer().hydrate(...args)
 }) as RootHydrateFunction
 
+// 用户调用的createApp函数
 export const createApp = ((...args) => {
+  // ensureRenderer()获得渲染器renderer
+  // 调用renderer获取app实例
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {

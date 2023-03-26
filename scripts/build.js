@@ -97,6 +97,8 @@ async function build(target) {
     (pkg.buildOptions && pkg.buildOptions.env) ||
     (devOnly ? 'development' : 'production')
   await execa(
+    // 使用 rollup 打包，参考rollup.config.js 配置文件
+    // https://www.rollupjs.com/guide/en/#command-line-reference
     'rollup',
     [
       '-c',

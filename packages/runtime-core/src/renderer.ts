@@ -322,6 +322,7 @@ function baseCreateRenderer(
 ): HydrationRenderer
 
 // implementation
+// 创建渲染器
 function baseCreateRenderer(
   options: RendererOptions,
   createHydrationFns?: typeof createHydrationFunctions
@@ -381,6 +382,10 @@ function baseCreateRenderer(
       n2.dynamicChildren = null
     }
 
+    // type是一个字符串或者对象，用来表示vnode的类型
+    // 如果是根组件，type会是一个对象，如果是普通的组件，type会是一个字符串
+    // 如果是普通的元素，type会是一个字符串，例如div、span等
+    // shapeFlag是一个二进制数，用来表示vnode的类型
     const { type, ref, shapeFlag } = n2
     switch (type) {
       case Text:
@@ -410,6 +415,7 @@ function baseCreateRenderer(
         )
         break
       default:
+        // 如果是普通的元素，会走到这里
         if (shapeFlag & ShapeFlags.ELEMENT) {
           processElement(
             n1,
@@ -422,7 +428,10 @@ function baseCreateRenderer(
             slotScopeIds,
             optimized
           )
-        } else if (shapeFlag & ShapeFlags.COMPONENT) {
+        }
+        // 如果是首次渲染，会走到这里
+        else if (shapeFlag & ShapeFlags.COMPONENT) {
+          // 如果是首次渲染，n1为null，如果是更新，n1为旧的vnode
           processComponent(
             n1,
             n2,
@@ -585,6 +594,7 @@ function baseCreateRenderer(
     optimized: boolean
   ) => {
     isSVG = isSVG || (n2.type as string) === 'svg'
+    // 如果是首次渲染，n1为null
     if (n1 == null) {
       mountElement(
         n2,
@@ -623,6 +633,7 @@ function baseCreateRenderer(
     let vnodeHook: VNodeHook | undefined | null
     const { type, props, shapeFlag, transition, dirs } = vnode
 
+    // 创建真实dom
     el = vnode.el = hostCreateElement(
       vnode.type as string,
       isSVG,
@@ -632,9 +643,13 @@ function baseCreateRenderer(
 
     // mount children first, since some props may rely on child content
     // being already rendered, e.g. `<select value>`
+    // 如果是文本类型的子节点
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       hostSetElementText(el, vnode.children as string)
-    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+    }
+    // 如果是数组类型的子节点
+    else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      // 递归渲染子节点
       mountChildren(
         vnode.children as VNodeArrayChildren,
         el,
@@ -771,10 +786,12 @@ function baseCreateRenderer(
     optimized,
     start = 0
   ) => {
+    // 遍历子节点
     for (let i = start; i < children.length; i++) {
       const child = (children[i] = optimized
         ? cloneIfMounted(children[i] as VNode)
         : normalizeVNode(children[i]))
+      // 递归渲染子节点
       patch(
         null,
         child,
@@ -1142,6 +1159,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 用于处理组件
   const processComponent = (
     n1: VNode | null,
     n2: VNode,
@@ -1164,6 +1182,7 @@ function baseCreateRenderer(
           optimized
         )
       } else {
+        // 首次运行会走这里，挂载组件
         mountComponent(
           n2,
           container,
@@ -1192,6 +1211,7 @@ function baseCreateRenderer(
     // mounting
     const compatMountInstance =
       __COMPAT__ && initialVNode.isCompatRoot && initialVNode.component
+    // 获取组件实例，instance.ctx 为组件实例，也就是组件的 this
     const instance: ComponentInternalInstance =
       compatMountInstance ||
       (initialVNode.component = createComponentInstance(
@@ -1219,6 +1239,7 @@ function baseCreateRenderer(
       if (__DEV__) {
         startMeasure(instance, `init`)
       }
+      // 初始化组件
       setupComponent(instance)
       if (__DEV__) {
         endMeasure(instance, `init`)
@@ -1289,6 +1310,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 用于挂载组件
   const setupRenderEffect: SetupRenderEffectFn = (
     instance,
     initialVNode,
@@ -1298,10 +1320,14 @@ function baseCreateRenderer(
     isSVG,
     optimized
   ) => {
+    // 组件实例的渲染函数
     const componentUpdateFn = () => {
+      // 初次渲染时，isMounted 为 false
       if (!instance.isMounted) {
         let vnodeHook: VNodeHook | null | undefined
         const { el, props } = initialVNode
+        // bm: beforeMount hook
+        // m: mounted hook
         const { bm, m, parent } = instance
         const isAsyncWrapperVNode = isAsyncWrapper(initialVNode)
 
@@ -1365,6 +1391,11 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `render`)
           }
+          // subTree: 组件的子树，其实就是组件的渲染函数的返回值
+          // renderComponentRoot: 调用组件的渲染函数，返回组件的子树
+          // subTree与instance.subTree的区别是，subTree是组件的子树，instance.subTree是组件的根节点
+          // 也就是说，组件的根节点的子节点就是组件的子树
+          // subTree与instance的结构相似，都有type、props、children等属性
           const subTree = (instance.subTree = renderComponentRoot(instance))
           if (__DEV__) {
             endMeasure(instance, `render`)
@@ -1489,6 +1520,7 @@ function baseCreateRenderer(
         if (__DEV__) {
           startMeasure(instance, `patch`)
         }
+        // 递归调用patch，对比子树，更新子树
         patch(
           prevTree,
           nextTree,
@@ -1542,12 +1574,15 @@ function baseCreateRenderer(
     }
 
     // create reactive effect for rendering
+    // 创建一个effect
     const effect = (instance.effect = new ReactiveEffect(
+      // 组件的更新函数
       componentUpdateFn,
       () => queueJob(update),
       instance.scope // track it in component's effect scope
     ))
 
+    // 创建一个更新函数
     const update: SchedulerJob = (instance.update = () => effect.run())
     update.id = instance.uid
     // allowRecurse
@@ -2315,12 +2350,17 @@ function baseCreateRenderer(
     return hostNextSibling((vnode.anchor || vnode.el)!)
   }
 
+  // 接收传入的vnode，并将其转换为真实dom，挂载到container上
   const render: RootRenderFunction = (vnode, container, isSVG) => {
+    // 首次执行vnode不为null
     if (vnode == null) {
       if (container._vnode) {
         unmount(container._vnode, null, null, true)
       }
     } else {
+      // 由于container._vnode为undefined，因此第一个参数为null
+      // 所以首次patch是挂载过程，不是更新过程
+      // 此处vnode会被patch转换为真实dom，并挂载到container上
       patch(container._vnode || null, vnode, container, null, null, null, isSVG)
     }
     flushPreFlushCbs()
@@ -2352,6 +2392,9 @@ function baseCreateRenderer(
   return {
     render,
     hydrate,
+    // createApp由createAppAPI创建而成
+    // 出现高阶函数意味着希望对功能进行扩展
+    // 在createAppAPI中不关心render的实现方式，只是对其进行扩展和调用
     createApp: createAppAPI(render, hydrate)
   }
 }

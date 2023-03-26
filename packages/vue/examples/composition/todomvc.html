@@ -90,6 +90,7 @@ function pluralize (n) {
   return n === 1 ? 'item' : 'items'
 }
 
+// 下一步调用在packages/runtime-dom/src/index.ts:66
 createApp({
   setup () {
     const state = reactive({

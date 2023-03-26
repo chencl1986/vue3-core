@@ -191,6 +191,7 @@ export function createAppAPI<HostElement>(
   render: RootRenderFunction<HostElement>,
   hydrate?: RootHydrateFunction
 ): CreateAppFunction<HostElement> {
+  // 返回一个createApp
   return function createApp(rootComponent, rootProps = null) {
     if (!isFunction(rootComponent)) {
       rootComponent = extend({}, rootComponent)
@@ -206,6 +207,9 @@ export function createAppAPI<HostElement>(
 
     let isMounted = false
 
+    // app就是renderer.createApp()创建的实例，内有常用的use、component、mount等方法
+    // 其中mount用于挂载实例到宿主元素
+    // mount会被packages/vue/examples/composition/todomvc.html中的app.mount('#app')调用
     const app: App = (context.app = {
       _uid: uid++,
       _component: rootComponent as ConcreteComponent,
@@ -296,6 +300,7 @@ export function createAppAPI<HostElement>(
         isHydrate?: boolean,
         isSVG?: boolean
       ): any {
+        // 首次执行时，isMounted为false，执行后变为true
         if (!isMounted) {
           // #5571
           if (__DEV__ && (rootContainer as any).__vue_app__) {
@@ -305,6 +310,7 @@ export function createAppAPI<HostElement>(
                 ` you need to unmount the previous app by calling \`app.unmount()\` first.`
             )
           }
+          // 1. 创建根组件的vnode
           const vnode = createVNode(
             rootComponent as ConcreteComponent,
             rootProps
@@ -323,6 +329,8 @@ export function createAppAPI<HostElement>(
           if (isHydrate && hydrate) {
             hydrate(vnode as VNode<Node, Element>, rootContainer as any)
           } else {
+            // 2. 执行render函数，将vnode渲染成真实dom，render函数是createAppAPI传入的
+            // [3. 将真实dom挂载到rootContainer上]
             render(vnode, rootContainer, isSVG)
           }
           isMounted = true

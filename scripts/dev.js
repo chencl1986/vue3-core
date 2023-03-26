@@ -6,17 +6,27 @@
 
 import esbuild from 'esbuild'
 import { resolve, relative, dirname } from 'node:path'
+// https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#E6m2dGSIMoG8ykxoLVJc2JWUnre
 import { fileURLToPath } from 'node:url'
+// https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#JmOCdQWy8oqQ4QxWQDecghMGnQg
 import { createRequire } from 'node:module'
 import minimist from 'minimist'
 import { NodeModulesPolyfillPlugin as nodePolyfills } from '@esbuild-plugins/node-modules-polyfill'
 
+// https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#EYKwdWmIao6g8uxoDvfcvQiwntg
 const require = createRequire(import.meta.url)
+// https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#WUSOd6MMyowM8mxIPMscl6Fln5c
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const args = minimist(process.argv.slice(2))
+// 输入目标，打包的是哪些package，例如vue、compiler、runtime、compiler-sfc等，因script的输入不同
+// 在没有传参的情况下，此处默认设置为vue
 const target = args._[0] || 'vue'
+// 输出格式，比如cjs、esm、global（前两者结合？），dev模式下f没有传参，此处默认设置为global
 const format = args.f || 'global'
+// 猜测这里应该是个Boolean，如果有值的话，就不设置externals，将所有依赖都打包
+// https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#FQI2dMQCGosWOixoFPicpp04nUb
 const inlineDeps = args.i || args.inline
+// 读取打包target package的配置，例如packages/vue/package.json
 const pkg = require(`../packages/${target}/package.json`)
 
 // resolve output
@@ -40,6 +50,7 @@ const relativeOutfile = relative(process.cwd(), outfile)
 
 // resolve externals
 // TODO this logic is largely duplicated from rollup.config.js
+// https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#FQI2dMQCGosWOixoFPicpp04nUb
 let external = []
 if (!inlineDeps) {
   // cjs & esm-bundler: external all deps
@@ -95,11 +106,14 @@ if (format === 'cjs' || pkg.buildOptions?.enableNonBrowserBranches) {
   plugins.push(nodePolyfills())
 }
 
+// https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#IUOWdS2M6ockmyxozcxcYED4nY2
+// https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#YamsdYAEQoSaMcxM3m1cmXOVn4g
 esbuild
   .context({
     entryPoints: [resolve(__dirname, `../packages/${target}/src/index.ts`)],
     outfile,
     bundle: true,
+    // https://qlg22w6jh4.feishu.cn/docx/RgHPdrLazoGgurxjJYxcQOT5ngc#FQI2dMQCGosWOixoFPicpp04nUb
     external,
     sourcemap: true,
     format: outputFormat,

@@ -975,6 +975,7 @@ export function createWatcher(
  * This is done only once per-component since the merging does not involve
  * instances.
  */
+// 用于解析合并的选项并将其缓存在组件上。这只会在每个组件上执行一次，因为合并不涉及实例。
 export function resolveMergedOptions(
   instance: ComponentInternalInstance
 ): MergedComponentOptions {

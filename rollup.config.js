@@ -25,15 +25,20 @@ const masterVersion = require('./package.json').version
 const consolidatePkg = require('@vue/consolidate/package.json')
 
 const packagesDir = path.resolve(__dirname, 'packages')
+// 获取当前打包的package的路径，例如packages/vue
+// 例如，来自于scripts/dev.js中的target（目前dev已改为使用esbuild）
+// 例如，来自于scripts/build.js中的target（目前build使用rollup）
 const packageDir = path.resolve(packagesDir, process.env.TARGET)
 
 const resolve = p => path.resolve(packageDir, p)
 const pkg = require(resolve(`package.json`))
+// package.json中的buildOptions
 const packageOptions = pkg.buildOptions || {}
 const name = packageOptions.filename || path.basename(packageDir)
 
 const [enumPlugin, enumDefines] = constEnum()
 
+// 不同的打包格式对应不同的输出配置
 const outputConfigs = {
   'esm-bundler': {
     file: resolve(`dist/${name}.esm-bundler.js`),
@@ -49,6 +54,7 @@ const outputConfigs = {
   },
   global: {
     file: resolve(`dist/${name}.global.js`),
+    // 立即执行函数
     format: `iife`
   },
   // runtime-only builds, for main "vue" package only
@@ -87,8 +93,13 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
+// 文档：https://rollupjs.org/guide/en/#big-list-of-options
 export default packageConfigs
 
+// 生成rollup配置
+// format：打包格式，例如esm-bundler
+// output：输出配置，例如{ file: resolve(`dist/${name}.esm-bundler.js`), format: `es` }
+// plugins：插件，例如[alias({ entries }), nodeResolve(), commonJS(), json(), enumPlugin]
 function createConfig(format, output, plugins = []) {
   if (!output) {
     console.log(chalk.yellow(`invalid format: "${format}"`))
@@ -120,6 +131,7 @@ function createConfig(format, output, plugins = []) {
     output.name = packageOptions.name
   }
 
+  // 生成入口文件，如果是runtime打包，则入口文件为src/runtime.ts，否则为src/index.ts
   let entryFile = /runtime$/.test(format) ? `src/runtime.ts` : `src/index.ts`
 
   // the compat build needs both default AND named exports. This will cause
