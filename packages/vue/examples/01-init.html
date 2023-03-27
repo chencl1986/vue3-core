@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    <h1>Vue3 init</h1>
+    <my-component></my-component>
+  </div>
+  <script src="../dist/vue.global.js"></script>
+  <script>
+    // Vue2 new Vue({}) -> Vue3 createApp({})
+    // 在vue.global.js中，所有的方法都会在立即执行函数的返回值里面暴露
+    // Vue3的createApp方法已经被挂载到了Vue上
+
+    // Vue3和Vue2的变化：
+    // 1. 由函数创建实例
+    // 对TypeScript强类型的支持更好
+    // createApp可以用TypeScript准确的生命参数类型，以及返回值类型
+    // 使用class加装饰器的方式创建组件，与Vue2差异较大
+    // 而且装饰器没有成为标准，性能可能也存在问题，所以Vue3不会使用这种方式
+    const app = Vue.createApp({
+      // 选项
+      data() {
+        return {
+          msg: 'hello world'
+        }
+      }
+    })
+    // 2. 所有的方法都变成了实例方法
+    // 例如：Vue2中的全局方法Vue.component() -> Vue3中的实例方法app.component()
+    // https://v2.vuejs.org/api/#Vue-component
+    // 如果采用构造函数，会有污染问题，也就是创建的实例可能会互相影响
+    // 对于Vue.component()，webpack在打包时，很难分析依赖，如果Vue.component()声明了组件却没有使用，会造成tree shaking优化困难
+    app.component('my-component', {
+      template: '<div>hello world</div>'
+    })
+    // 3. API简化、一致性
+    // Vue2：new Vue({}).$mount('#app')
+    // Vue3：createApp({}).mount('#app')
+    app.mount('#app')
+  </script>
+</body>
+</html>
