@@ -76,6 +76,7 @@ function findInsertionIndex(id: number) {
   return start
 }
 
+// 将任务添加到队列中
 export function queueJob(job: SchedulerJob) {
   // the dedupe search uses the startIndex argument of Array.includes()
   // by default the search index includes the current job that is being run
@@ -83,6 +84,23 @@ export function queueJob(job: SchedulerJob) {
   // if the job is a watch() callback, the search will start with a +1 index to
   // allow it recursively trigger itself - it is the user's responsibility to
   // ensure it doesn't end up in an infinite loop.
+  /* 
+  // dedupe搜索使用Array.includes()的startIndex参数
+  // 默认情况下，搜索索引包括正在运行的当前作业
+  // 因此它不能递归触发自身。
+  // 如果作业是watch()回调，则搜索将从+1索引开始，
+  // 允许它递归地触发自身-用户有责任确保它不会陷入无限循环。
+
+  这段话的意思是：
+
+  "dedupe"搜索使用了Array.includes()的startIndex参数。
+  默认情况下，搜索从正在运行的当前作业开始，因此不能递归触发自身。
+  但是，如果作业是一个watch()回调，搜索将从+1索引开始，这意味着它可以递归地触发自身。
+  这里需要用户注意确保不会陷入无限循环。
+
+  "Dedupe"是"Duplicate Elimination"的简写，意思是去重或消除重复。
+  在计算机科学中，它通常用于描述去除数据中的重复项或在处理任务时避免重复执行。
+   */
   if (
     !queue.length ||
     !queue.includes(
@@ -99,9 +117,12 @@ export function queueJob(job: SchedulerJob) {
   }
 }
 
+// 启动批量任务的执行
 function queueFlush() {
   if (!isFlushing && !isFlushPending) {
     isFlushPending = true
+    // 通过Promise.resolve().then()来实现异步执行
+    // 在微任务队列被清空之后，会执行flushJobs
     currentFlushPromise = resolvedPromise.then(flushJobs)
   }
 }
@@ -170,6 +191,7 @@ export function flushPostFlushCbs(seen?: CountMap) {
       seen = seen || new Map()
     }
 
+    // 根据id对任务进行排序，创建得早的任务id会小，创建得晚的任务id会大，这样就可以保证先创建的任务先执行
     activePostFlushCbs.sort((a, b) => getId(a) - getId(b))
 
     for (
@@ -202,6 +224,7 @@ const comparator = (a: SchedulerJob, b: SchedulerJob): number => {
   return diff
 }
 
+// 将任务队列中的任务依次执行
 function flushJobs(seen?: CountMap) {
   isFlushPending = false
   isFlushing = true
@@ -216,6 +239,7 @@ function flushJobs(seen?: CountMap) {
   //    priority number)
   // 2. If a component is unmounted during a parent component's update,
   //    its update can be skipped.
+  // 根据id对任务进行排序，创建得早的任务id会小，创建得晚的任务id会大，这样就可以保证先创建的任务先执行
   queue.sort(comparator)
 
   // conditional usage of checkRecursiveUpdate must be determined out of
@@ -228,6 +252,7 @@ function flushJobs(seen?: CountMap) {
     : NOOP
 
   try {
+    // 依次执行任务队列中的任务
     for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
       const job = queue[flushIndex]
       if (job && job.active !== false) {
@@ -235,7 +260,13 @@ function flushJobs(seen?: CountMap) {
           continue
         }
         // console.log(`running:`, job.id)
-        callWithErrorHandling(job, null, ErrorCodes.SCHEDULER)
+        // 执行任务
+        callWithErrorHandling(
+          // job就是run函数
+          job,
+          null,
+          ErrorCodes.SCHEDULER
+        )
       }
     }
   } finally {

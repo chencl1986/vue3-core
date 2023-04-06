@@ -85,6 +85,7 @@ export class ReactiveEffect<T = any> {
 
   run() {
     if (!this.active) {
+      // fn就是传入的函数，即componentUpdateFn，packages/runtime-core/src/renderer.ts:1583
       return this.fn()
     }
     let parent: ReactiveEffect | undefined = activeEffect

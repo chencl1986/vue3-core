@@ -1260,6 +1260,8 @@ function baseCreateRenderer(
       return
     }
 
+    // 安装渲染函数的副作用
+    // 建立更新机制，后续如果有数据发生变化，会触发组件更新
     setupRenderEffect(
       instance,
       initialVNode,
@@ -1321,6 +1323,9 @@ function baseCreateRenderer(
     optimized
   ) => {
     // 组件实例的渲染函数
+    // 如果数据发生变化，会重新执行这个函数，告诉组件如何更新
+    // 其中对patch产生了调用，在调用之前会获取渲染函数的结果，也就是当前组件的vnode
+    // 在首次执行渲染函数时，已经建立了依赖关系（数据发生变化时，就能知道要更新哪个组件的componentUpdateFn）
     const componentUpdateFn = () => {
       // 初次渲染时，isMounted 为 false
       if (!instance.isMounted) {
@@ -1510,10 +1515,12 @@ function baseCreateRenderer(
         if (__DEV__) {
           startMeasure(instance, `render`)
         }
+        // 获取组件的子树，最新的子树
         const nextTree = renderComponentRoot(instance)
         if (__DEV__) {
           endMeasure(instance, `render`)
         }
+        // 获取缓存的子树，旧的子树
         const prevTree = instance.subTree
         instance.subTree = nextTree
 
@@ -1521,6 +1528,7 @@ function baseCreateRenderer(
           startMeasure(instance, `patch`)
         }
         // 递归调用patch，对比子树，更新子树
+        // 执行diff算法，更新子树
         patch(
           prevTree,
           nextTree,
@@ -1574,15 +1582,18 @@ function baseCreateRenderer(
     }
 
     // create reactive effect for rendering
-    // 创建一个effect
+    // 为组件的渲染，创建一个effect响应式副作用
     const effect = (instance.effect = new ReactiveEffect(
       // 组件的更新函数
       componentUpdateFn,
+      // update来自于instance.update，它就是scheduler
       () => queueJob(update),
+      // 作用域
       instance.scope // track it in component's effect scope
     ))
 
-    // 创建一个更新函数
+    // 创建一个更新函数，用于更新组件
+    // 实际传入queueJob的是effect.run
     const update: SchedulerJob = (instance.update = () => effect.run())
     update.id = instance.uid
     // allowRecurse
